@@ -15,6 +15,7 @@ jobs:
   download:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+
     steps:
       - name: Download firmware
         run: |
@@ -33,6 +34,7 @@ jobs:
 
       - name: Verify archive checksums
         run: |
+          set -euo pipefail
           cd firmware
           cat > SHA256SUMS <<'EOF'
           bf88a9fbd1fc2f2b0bcb4ed91d1b3f1e9ded93ac117dc610864805613e7f9d1e  2025112020_g91v95c2k_dfl_eea.zip
@@ -49,7 +51,7 @@ jobs:
           b4f33d73da219f6d107a434914f26315ccc11f3f41401a1099ed68085d14586f  vendor_dlkm_a.zip
           EOF
           sha256sum -c SHA256SUMS
-        
+
       - name: Split vendor archive
         run: |
           set -euo pipefail
@@ -58,8 +60,27 @@ jobs:
           split -b 300M -d -a 2 vendor_a.zip vendor_a.zip.part-
           ls -lh vendor_a.zip.part-*
 
-      - name: Upload firmware
-        
+      - name: Upload small firmware files
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tank3-Android15-EEA-firmware-small
+          path: |
+            firmware/2025112020_g91v95c2k_dfl_eea.zip
+            firmware/download_agent.zip
+            firmware/odm_dlkm_a.zip
+            firmware/product_a.zip
+            firmware/product_a1.zip
+            firmware/system_a.zip
+            firmware/system_b.zip
+            firmware/system_ext_a.zip
+            firmware/system_ext_a1.zip
+            firmware/vendor_a2.zip
+            firmware/vendor_dlkm_a.zip
+            firmware/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Upload vendor part 1
         uses: actions/upload-artifact@v4
         with:
@@ -86,10 +107,3 @@ jobs:
           compression-level: 0
           retention-days: 7
 
-        uses: actions/upload-artifact@v4
-        with:
-          name: Tank3-Android15-EEA-firmware
-          path: firmware/
-          compression-level: 0
-          retention-days: 7
-          if-no-files-found: error
