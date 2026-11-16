@@ -1,0 +1,60 @@
+
+name: Download Tank3 firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/download-firmware.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Download firmware
+        run: |
+          set -euo pipefail
+          mkdir -p firmware
+          curl -fsSL \
+            https://api.github.com/repos/DobbiSwobodniy/Tank3/releases/tags/V1.0.0 \
+            -o release.json
+
+          jq -r '.assets[] | [.name,.browser_download_url] | @tsv' release.json |
+          while IFS="$(printf '\t')" read -r name url; do
+            echo "Downloading $name"
+            curl -fL --retry 5 --retry-all-errors \
+              "$url" -o "firmware/$name"
+          done
+
+      - name: Verify archive checksums
+        run: |
+          cd firmware
+          cat > SHA256SUMS <<'EOF'
+          bf88a9fbd1fc2f2b0bcb4ed91d1b3f1e9ded93ac117dc610864805613e7f9d1e  2025112020_g91v95c2k_dfl_eea.zip
+          180ca03cb928ca439ec79a62acc73c580ebe81163bfc4668b28c3fb5e0743963  download_agent.zip
+          8e4ccb4c679b4aa9de54a548d107bbf47afd2acf90e41194b7f189647357dd79  odm_dlkm_a.zip
+          b2391d40d895be12ef95924baeaddd241c2b8c5abfbae7dc8668133fba891f65  product_a.zip
+          ad9b2b9b85f345d15104c3e44cc084d150d2fa34d0a02f9abcb1b41ec55a6338  product_a1.zip
+          33d263fdb9f593a07ffcb21571d838ad5017adbc8d6ebc90ebe334c459dac82f  system_a.zip
+          770fb8b00a70202bce6d37c48493b3a4c92d6ca14b13c00ae5531abbaddaf648  system_b.zip
+          e7c9167ae468e7bc351f1dd8cc085b2b8cbfa6bbb588d4f1c1af3c12e07a1fe9  system_ext_a.zip
+          0057536b571b7a808872698790dbe974b8e83826a2d9a2c6efa2e8d3e6114c5c  system_ext_a1.zip
+          3ab4072b182585e59bace77ff832cd7b5758c9ea05996027835e1d29f57da48e  vendor_a.zip
+          f810290139f89d826f70496c2342be607713ce987f9fd0e51c897c47df3d6b3f  vendor_a2.zip
+          b4f33d73da219f6d107a434914f26315ccc11f3f41401a1099ed68085d14586f  vendor_dlkm_a.zip
+          EOF
+          sha256sum -c SHA256SUMS
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tank3-Android15-EEA-firmware
+          path: firmware/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
