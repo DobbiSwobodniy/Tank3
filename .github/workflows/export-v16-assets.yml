@@ -1,0 +1,37 @@
+
+имя:           дни удержания
+
+на:
+  workflow_dispatch:
+  толкать:
+    пути:
+      - .github/workflows/export-v16-assets.yml
+
+разрешения:
+  содержание: читать
+
+работа:
+  экспорт:
+    наезжает: убунту-последняя веѵрсия
+    шаги:
+      - имя: Скачать изображения Android 16
+        энв:
+          GH_TOKEN: ${{ github.токен }}
+        бегать: |
+          становить -euo pipefail
+          mkdir -p источник информации
+          гх раздел скачать V16.0.0_vendor \
+            --репозиторий "$GITHUB_REPOSITORY" \
+            --шаблон "boot.img" \
+            --шаблон "vendor_boot.img" \
+            --шаблон "dtbo.img" \
+            --dir recovery-source
+          источник восстановления компакт-диска
+          sha256sum boot.img vendor_boot.img dtbo.img > SHA256SUMS
+
+      - имя: Загрузить изображения
+        использует: действия/upload-artifact@v4
+        с:
+          имя: tank3-android16-восстановление-источник
+          путь: источник восстановления/
+          дни удержания: 7
